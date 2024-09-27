@@ -1,0 +1,68 @@
+# Frontend Pipeline with Testing for React Frontend Application
+trigger:
+- main
+
+variables:
+  containerRegistry: 'myacr.azurecr.io'
+  dockerRegistryServiceConnection: 'my-acr-connection'
+  aksResourceGroup: 'my-aks-resource-group'
+  aksClusterName: 'my-aks-cluster'
+  devNamespace: 'frontend-dev'
+  kubernetesManifests: 'k8s/frontend'
+
+stages:
+- stage: Test
+  displayName: 'Test React Frontend Code'
+  jobs:
+  - job: Test_Frontend
+    displayName: 'Run Unit Tests'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        cd frontend
+        npm install
+        npm test
+      displayName: 'Run npm Unit Tests for Frontend'
+
+- stage: Build
+  displayName: 'Build and Push Frontend Docker Image'
+  dependsOn: Test   # Run Build only if Test stage is successful
+  jobs:
+  - job: Build_Frontend
+    displayName: 'Build and Push Frontend Image'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        docker build -t $(containerRegistry)/react-frontend:$(Build.BuildId) -f frontend/Dockerfile frontend/
+      displayName: 'Build Docker Image from Dockerfile'
+    - task: Docker@2
+      displayName: 'Push Docker Image to ACR'
+      inputs:
+        containerRegistry: $(dockerRegistryServiceConnection)
+        repository: $(containerRegistry)/react-frontend
+        command: 'push'
+        tags: $(Build.BuildId)
+
+- stage: Deploy_Dev
+  displayName: 'Deploy Frontend to Development Environment'
+  dependsOn: Build
+  jobs:
+  - job: Deploy_Frontend_Dev
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Set AKS Credentials'
+      inputs:
+        azureSubscription: $(dockerRegistryServiceConnection)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az aks get-credentials --resource-group $(aksResourceGroup) --name $(aksClusterName) --admin
+    - script: |
+        sed -i 's|image: .*/react-frontend:.*|image: $(containerRegistry)/react-frontend:$(Build.BuildId)|' $(kubernetesManifests)/deployment.yaml
+      displayName: 'Update Frontend Deployment YAML with New Image'
+    - script: |
+        kubectl apply -f $(kubernetesManifests)/deployment.yaml

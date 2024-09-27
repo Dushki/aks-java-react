@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: java-backend
+        image: myacr.azurecr.io/java-backend:latest # Image reference updated dynamically by pipeline
+        ports:
+        - containerPort: 8080
+        env:
+        - name: FRONTEND_URL
+          value: "http://frontend-service.frontend-dev.svc.cluster.local"
+
+---
