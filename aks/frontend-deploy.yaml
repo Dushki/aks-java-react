@@ -16,20 +16,20 @@ spec:
     spec:
       containers:
       - name: react-frontend
-        image: myacr.azurecr.io/react-frontend:latest # Image reference updated dynamically by pipeline
-        ports:
+        image: myacr.azurecr.io/react-frontend:latest 
         - containerPort: 3000
 ----
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend-service   # This is the DNS service name
-  namespace: frontend-dev  # Specify the namespace where the frontend is deployed
+  name: frontend-service 
+  namespace: frontend-dev 
 spec:
   selector:
-    app: frontend   # This label should match the label used in the frontend Deployment
+    app: frontend
   ports:
     - protocol: TCP
-      port: 80            # Service port (frontend will be accessible on this port)
-      targetPort: 3000     # Port where the frontend container listens
+      port: 80    
+      targetPort: 3000
+  type: LoadBalancer

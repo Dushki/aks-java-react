@@ -8,7 +8,7 @@ variables:
   aksResourceGroup: 'my-aks-resource-group'
   aksClusterName: 'my-aks-cluster'
   devNamespace: 'frontend-dev'
-  kubernetesManifests: 'k8s/frontend'
+  kubernetesManifests: 'aks/frontend-deploy.yaml'
 
 stages:
 - stage: Test
@@ -62,7 +62,7 @@ stages:
         inlineScript: |
           az aks get-credentials --resource-group $(aksResourceGroup) --name $(aksClusterName) --admin
     - script: |
-        sed -i 's|image: .*/react-frontend:.*|image: $(containerRegistry)/react-frontend:$(Build.BuildId)|' $(kubernetesManifests)/deployment.yaml
+        sed -i 's|image: .*/react-frontend:.*|image: $(containerRegistry)/react-frontend:$(Build.BuildId)|' $(kubernetesManifests)
       displayName: 'Update Frontend Deployment YAML with New Image'
     - script: |
-        kubectl apply -f $(kubernetesManifests)/deployment.yaml
+        kubectl apply -f $(kubernetesManifests) --namespace=$(devNamespace)

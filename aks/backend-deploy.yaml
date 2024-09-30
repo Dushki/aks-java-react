@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: java-backend
-        image: myacr.azurecr.io/java-backend:latest # Image reference updated dynamically by pipeline
+        image: myacr.azurecr.io/java-backend:latest
         ports:
         - containerPort: 8080
         env:
